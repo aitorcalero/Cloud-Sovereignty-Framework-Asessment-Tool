@@ -1,6 +1,53 @@
 
-import { GoogleGenAI } from "@google/genai";
-import { Language } from "../types";
+import { GoogleGenAI, Type } from "@google/genai";
+import { Language, SOV_ID } from "../types";
+
+const MODEL_NAME = "gemini-3-pro-preview";
+const THINKING_BUDGET = 32768;
+
+/**
+ * Robust cleaning of markdown symbols for a clean UI experience.
+ */
+export const cleanAIData = (text: string): string => {
+  if (!text) return "";
+  return text
+    .replace(/[#*`_~]/g, '') // Remove markdown symbols
+    .replace(/\[|\]/g, '')  // Remove brackets
+    .replace(/\n{3,}/g, '\n\n') // Normalize multiple newlines
+    .trim();
+};
+
+export const autoAssessSolution = async (
+  description: string,
+  lang: Language
+) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  const systemInstruction = lang === 'en'
+    ? "You are an EU Cloud Sovereignty Auditor. Evaluate 8 SOV categories. Provide SEAL levels (0-4) and brief justifications. NO MARKDOWN. JSON ONLY."
+    : "Eres un Auditor de Soberanía Cloud de la UE. Evalúa 8 categorías SOV. Proporciona niveles SEAL (0-4) y justificaciones breves. SIN MARKDOWN. SOLO JSON.";
+
+  const prompt = `Evaluate: "${description}"
+Required IDs: SOV-1 to SOV-8.
+Output JSON schema: { assessments: [{ id: string, score: number, justification: string }] }`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        systemInstruction,
+        thinkingConfig: { thinkingBudget: THINKING_BUDGET },
+        responseMimeType: "application/json"
+      }
+    });
+    
+    return JSON.parse(response.text || "{}");
+  } catch (error) {
+    console.error("Auto-assessment error:", error);
+    return null;
+  }
+};
 
 export const getSovereigntyAdvice = async (
   objectiveName: string,
@@ -8,46 +55,70 @@ export const getSovereigntyAdvice = async (
   userContext: string,
   lang: Language
 ) => {
-  // Create a new GoogleGenAI instance right before making an API call to ensure it always uses the most up-to-date API key from the dialog
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  // Define system instruction in the config for better context isolation as per SDK guidelines
   const systemInstruction = lang === 'en' 
-    ? `Act as an expert in the European Commission's Cloud Sovereignty Framework. 
-       Analyze the provided evidence for the objective "${objectiveName}".
-       Provide your response in ENGLISH.`
-    : `Actúa como un experto en el Marco de Soberanía Cloud de la Comisión Europea.
-       Analiza la evidencia proporcionada para el objetivo "${objectiveName}".
-       Proporciona tu respuesta en ESPAÑOL.`;
+    ? `Expert EU Cloud Auditor. Respond in ENGLISH. DO NOT use markdown symbols like * or #. Plain text only.`
+    : `Experto Auditor Cloud UE. Responde en ESPAÑOL. NO uses símbolos markdown como * o #. Solo texto plano.`;
 
-  const prompt = `Critical factors to consider:
-${factors.map(f => `- ${f}`).join('\n')}
-
-Provider's description of evidence:
-"${userContext}"
-
-Please provide your expert analysis including:
-1. A suggested SEAL level (0-4).
-2. Detailed justification based on the contributing factors and European regulations.
-3. Specific recommendations to improve the sovereignty level in this area.`;
+  const prompt = `Analyze: "${userContext}" for ${objectiveName}.
+Factors: ${factors.join(', ')}
+Output: SEAL level, Reasoning, 3 Improvements.`;
 
   try {
     const response = await ai.models.generateContent({
-      // Use gemini-3-pro-preview for complex reasoning and policy analysis tasks
-      model: "gemini-3-pro-preview",
+      model: MODEL_NAME,
       contents: prompt,
       config: {
         systemInstruction,
-        // By default, we do not need to set thinkingBudget, allowing the model to decide reasoning depth
+        thinkingConfig: { thinkingBudget: THINKING_BUDGET }
       }
     });
-    
-    // The .text property is a getter that returns the extracted string output
-    return response.text;
+    return cleanAIData(response.text || "");
   } catch (error) {
-    console.error("Error al consultar Gemini:", error);
-    return lang === 'en' 
-      ? "Sorry, there was an error processing your request with the AI advisor. Please check your connection or try again later."
-      : "Lo sentimos, hubo un error al procesar tu consulta con el asesor de IA. Por favor, comprueba tu conexión o inténtalo de nuevo más tarde.";
+    return lang === 'en' ? "Error connecting." : "Error al conectar.";
   }
+};
+
+export const getSealGuidance = async (
+  objectiveName: string,
+  factors: string[],
+  solutionDescription: string,
+  lang: Language
+) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const systemInstruction = lang === 'en'
+    ? "EU Compliance Architect. NO MARKDOWN symbols. Use plain text formatting."
+    : "Arquitecto de Cumplimiento UE. SIN símbolos markdown. Usa formato de texto plano.";
+
+  const prompt = `Custom L0-L4 rubric for "${solutionDescription}" regarding ${objectiveName}.
+Factors: ${factors.join(', ')}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+      config: {
+        systemInstruction,
+        thinkingConfig: { thinkingBudget: THINKING_BUDGET }
+      }
+    });
+    return cleanAIData(response.text || "");
+  } catch (error) {
+    return "Error.";
+  }
+};
+
+export const globalChat = async (message: string, history: any[], lang: Language) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const chat = ai.chats.create({
+    model: MODEL_NAME,
+    config: {
+      systemInstruction: lang === 'en' 
+        ? "EU Cloud Assistant. Professional plain text. No markdown." 
+        : "Asistente Cloud UE. Texto plano profesional. Sin markdown.",
+      thinkingConfig: { thinkingBudget: THINKING_BUDGET }
+    }
+  });
+  const response = await chat.sendMessage({ message });
+  return cleanAIData(response.text || "");
 };
