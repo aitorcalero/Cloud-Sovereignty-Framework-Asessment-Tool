@@ -1,0 +1,45 @@
+
+export const translations = {
+  es: {
+    title: "Marco de Soberanía Cloud",
+    subtitle: "Evaluador de Cumplimiento (Oct. 2025)",
+    globalScore: "Sovereignty Score Global",
+    export: "Exportar Informe",
+    step1: "Evaluación por Objetivos",
+    balance: "Balance de Soberanía",
+    avgMaturity: "Nivel de Madurez Promedio",
+    aiAdvisor: "Asesor de Soberanía IA",
+    aiInitial: "Describe la evidencia en un objetivo y haz clic en \"Consultar Asesor IA\" para obtener recomendaciones expertas.",
+    aiConsulting: "Consultando al asesor de soberanía de la UE...",
+    aiAnalyzing: "Analizando factores de cumplimiento...",
+    sealGuide: "Guía de Niveles SEAL",
+    objective: "Objetivo",
+    sealLevel: "Nivel de Aseguramiento (SEAL)",
+    factors: "Factores Contribuyentes",
+    evidence: "Evidencia / Notas",
+    evidencePlaceholder: "Describe la evidencia aportada por el proveedor...",
+    askAi: "Consultar Asesor IA",
+    lang: "Idioma"
+  },
+  en: {
+    title: "Cloud Sovereignty Framework",
+    subtitle: "Compliance Evaluator (Oct. 2025)",
+    globalScore: "Global Sovereignty Score",
+    export: "Export Report",
+    step1: "Assessment by Objectives",
+    balance: "Sovereignty Balance",
+    avgMaturity: "Average Maturity Level",
+    aiAdvisor: "AI Sovereignty Advisor",
+    aiInitial: "Describe the evidence in an objective and click \"Ask AI Advisor\" to get expert recommendations.",
+    aiConsulting: "Consulting the EU sovereignty advisor...",
+    aiAnalyzing: "Analyzing compliance factors...",
+    sealGuide: "SEAL Level Guide",
+    objective: "Objective",
+    sealLevel: "Assurance Level (SEAL)",
+    factors: "Contributing Factors",
+    evidence: "Evidence / Notes",
+    evidencePlaceholder: "Describe the evidence provided by the provider...",
+    askAi: "Ask AI Advisor",
+    lang: "Language"
+  }
+};

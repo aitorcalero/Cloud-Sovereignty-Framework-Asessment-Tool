@@ -1,0 +1,7 @@
+{
+  "name": "Evaluador de Soberanía Cloud EU",
+  "description": "Herramienta de evaluación basada en el Cloud Sovereignty Framework de la Comisión Europea para medir el cumplimiento de objetivos de soberanía estratégica, legal, operativa y tecnológica.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
