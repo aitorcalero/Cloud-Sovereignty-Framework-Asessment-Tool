@@ -30,6 +30,10 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({
   const [guidanceText, setGuidanceText] = useState("");
   const [loadingGuidance, setLoadingGuidance] = useState(false);
 
+  // Safety: ensure score is in range 0-4
+  const currentScore = Math.max(0, Math.min(4, score || 0));
+  const sealInfo = sealDefinitions[currentScore] || sealDefinitions[0];
+
   const handleGenerateGuidance = async () => {
     if (!note) return;
     setLoadingGuidance(true);
@@ -70,18 +74,18 @@ const ObjectiveCard: React.FC<ObjectiveCardProps> = ({
               key={level}
               onClick={() => onScoreChange(level)}
               className={`p-2 rounded-md text-sm font-bold transition-all ${
-                score === level
+                currentScore === level
                   ? 'bg-blue-600 text-white shadow-md scale-105'
                   : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-400 hover:bg-slate-50'
               }`}
-              title={sealDefinitions[level].description}
+              title={sealDefinitions[level]?.description}
             >
               L{level}
             </button>
           ))}
         </div>
         <div className="mt-2 text-[11px] text-slate-500 leading-tight">
-          <span className="font-bold text-slate-700">{sealDefinitions[score].name}:</span> {sealDefinitions[score].description}
+          <span className="font-bold text-slate-700">{sealInfo.name}:</span> {sealInfo.description}
         </div>
       </div>
 

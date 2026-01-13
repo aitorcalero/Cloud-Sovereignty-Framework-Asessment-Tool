@@ -1,19 +1,21 @@
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { SOV_ID, Language, AssessmentState } from './types';
 import { getSovereigntyObjectives, getSealDefinitions } from './constants';
 import { translations } from './i18n';
 import ObjectiveCard from './components/ObjectiveCard';
 import SovereigntyRadar from './components/SovereigntyRadar';
 import ChatWidget from './components/ChatWidget';
-import { getSovereigntyAdvice, autoAssessSolution, cleanAIData } from './services/geminiService';
+import { getSovereigntyAdvice, autoAssessSolution, describeArchitectureDiagram } from './services/geminiService';
 
 const App: React.FC = () => {
   const [lang, setLang] = useState<Language>('es');
   const [globalSolution, setGlobalSolution] = useState("");
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
+  const [isImageLoading, setIsImageLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const objectives = useMemo(() => getSovereigntyObjectives(lang), [lang]);
   const sealDefs = useMemo(() => getSealDefinitions(lang), [lang]);
@@ -29,7 +31,7 @@ const App: React.FC = () => {
 
   const globalScore = useMemo(() => {
     return objectives.reduce((acc, obj) => {
-      const normalizedScore = assessment.scores[obj.id] / 4;
+      const normalizedScore = (assessment.scores[obj.id] || 0) / 4;
       return acc + (normalizedScore * obj.weight);
     }, 0) * 100;
   }, [assessment.scores, objectives]);
@@ -70,7 +72,6 @@ const App: React.FC = () => {
     if (!globalSolution.trim()) return;
     setIsGlobalLoading(true);
     
-    // Status cycle simulation
     const statuses = [
       t.statusStrategic, t.statusLegal, t.statusData, 
       t.statusOps, t.statusSupply, t.statusTech, 
@@ -91,8 +92,10 @@ const App: React.FC = () => {
         result.assessments.forEach((item: any) => {
           const id = item.id as SOV_ID;
           if (newScores.hasOwnProperty(id)) {
-            newScores[id] = item.score;
-            newNotes[id] = item.justification;
+            // Safety check: Ensure score is integer 0-4
+            const validScore = Math.max(0, Math.min(4, Math.round(item.score || 0)));
+            newScores[id] = validScore;
+            newNotes[id] = item.justification || "";
           }
         });
         
@@ -105,14 +108,36 @@ const App: React.FC = () => {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImageLoading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(',')[1];
+      const description = await describeArchitectureDiagram(base64, file.type, lang);
+      if (description) {
+        setGlobalSolution(prev => (prev ? prev + "\n\n" + description : description));
+      } else {
+        alert(t.imageError);
+      }
+      setIsImageLoading(false);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
   const handleCopyReport = () => {
     let reportText = `${t.title} - ${t.subtitle}\n`;
     reportText += `------------------------------------------\n`;
     reportText += `${t.globalScore}: ${globalScore.toFixed(1)}%\n\n`;
     
     objectives.forEach(obj => {
+      const score = assessment.scores[obj.id] || 0;
+      const sealInfo = sealDefs[score] || sealDefs[0];
       reportText += `[${obj.id}] ${obj.name}\n`;
-      reportText += `${t.sealLevel}: SEAL-${assessment.scores[obj.id]} (${sealDefs[assessment.scores[obj.id]].name})\n`;
+      reportText += `${t.sealLevel}: SEAL-${score} (${sealInfo.name})\n`;
       reportText += `${t.evidence}:\n${assessment.notes[obj.id] || '---'}\n\n`;
     });
 
@@ -123,7 +148,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen pb-20 font-sans">
+    <div className="min-h-screen pb-20 font-sans selection:bg-blue-100">
       <header className="bg-slate-900 text-white p-6 sticky top-0 z-50 shadow-lg border-b border-slate-700">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
@@ -149,7 +174,7 @@ const App: React.FC = () => {
             </div>
             <button 
               onClick={handleCopyReport} 
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${copyFeedback ? 'bg-green-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'}`}
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2 ${copyFeedback ? 'bg-green-600 text-white shadow-green-900/20 shadow-lg' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'}`}
             >
               {copyFeedback ? (
                 <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/></svg> {t.reportCopied}</>
@@ -170,19 +195,48 @@ const App: React.FC = () => {
               </h2>
               <p className="text-sm text-slate-500 mt-1 font-medium">{t.globalAssessDesc}</p>
             </div>
-            <button 
-              onClick={handleGlobalAutoAssess}
-              disabled={isGlobalLoading || !globalSolution.trim()}
-              className="bg-slate-900 hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-black text-sm tracking-wide transition-all shadow-xl hover:shadow-blue-200 flex items-center gap-3 disabled:opacity-40 active:scale-95 group"
-            >
-              {isGlobalLoading ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {statusMessage || t.thinking}</>
-              ) : (
-                <><svg className="w-5 h-5 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> {t.globalAssessBtn}</>
-              )}
-            </button>
+            
+            <div className="flex gap-3">
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={handleFileUpload}
+              />
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImageLoading || isGlobalLoading}
+                className="bg-white border-2 border-blue-600 text-blue-600 px-6 py-3.5 rounded-2xl font-black text-sm tracking-wide transition-all hover:bg-blue-50 flex items-center gap-3 active:scale-95 disabled:opacity-50"
+              >
+                {isImageLoading ? (
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                )}
+                {t.uploadDiagram}
+              </button>
+
+              <button 
+                onClick={handleGlobalAutoAssess}
+                disabled={isGlobalLoading || !globalSolution.trim()}
+                className="bg-slate-900 hover:bg-blue-700 text-white px-8 py-3.5 rounded-2xl font-black text-sm tracking-wide transition-all shadow-xl hover:shadow-blue-200 flex items-center gap-3 disabled:opacity-40 active:scale-95 group"
+              >
+                {isGlobalLoading ? (
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {statusMessage || t.thinking}</>
+                ) : (
+                  <><svg className="w-5 h-5 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> {t.globalAssessBtn}</>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="p-6 bg-white">
+          <div className="p-6 bg-white relative">
+            {isImageLoading && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
+                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-blue-700 font-black uppercase tracking-widest animate-pulse">{t.processingImage}</p>
+              </div>
+            )}
             <textarea 
               value={globalSolution}
               onChange={(e) => setGlobalSolution(e.target.value)}
@@ -206,7 +260,7 @@ const App: React.FC = () => {
                     objective={obj}
                     lang={lang}
                     sealDefinitions={sealDefs}
-                    score={assessment.scores[obj.id]}
+                    score={assessment.scores[obj.id] || 0}
                     note={assessment.notes[obj.id]}
                     onScoreChange={(score) => handleScoreChange(obj.id, score)}
                     onNoteChange={(note) => handleNoteChange(obj.id, note)}
@@ -221,14 +275,16 @@ const App: React.FC = () => {
             <section className="bg-white rounded-2xl shadow-xl border border-slate-200 p-7">
               <h2 className="text-lg font-black text-slate-900 mb-6 flex items-center justify-between">
                 {t.balance}
-                <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">{globalScore.toFixed(0)}%</span>
+                <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs font-bold">{globalScore.toFixed(0)}%</span>
               </h2>
-              <SovereigntyRadar scores={assessment.scores} lang={lang} />
+              <div className="min-h-[300px]">
+                <SovereigntyRadar scores={assessment.scores} lang={lang} />
+              </div>
               <div className="mt-8 space-y-5">
                 <div className="flex justify-between items-center text-[13px] font-bold">
                   <span className="text-slate-500 uppercase tracking-widest">{t.avgMaturity}</span>
                   <span className="text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">
-                    {((Object.values(assessment.scores) as number[]).reduce((a, b) => a + b, 0) / 8).toFixed(1)} / 4
+                    {((Object.values(assessment.scores) as number[]).reduce((a, b) => (a || 0) + (b || 0), 0) / 8).toFixed(1)} / 4
                   </span>
                 </div>
                 <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden shadow-inner">

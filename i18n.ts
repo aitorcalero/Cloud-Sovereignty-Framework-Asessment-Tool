@@ -38,7 +38,10 @@ export const translations = {
     statusSupply: "Auditando cadena de suministro...",
     statusTech: "Comprobando stack tecnológico...",
     statusSecurity: "Validando seguridad y cumplimiento...",
-    statusGreen: "Midiendo sostenibilidad ambiental..."
+    statusGreen: "Midiendo sostenibilidad ambiental...",
+    uploadDiagram: "Subir Diagrama",
+    processingImage: "Analizando diagrama visual...",
+    imageError: "Error al procesar la imagen."
   },
   en: {
     title: "Cloud Sovereignty Framework",
@@ -78,6 +81,9 @@ export const translations = {
     statusSupply: "Auditing supply chain...",
     statusTech: "Checking technology stack...",
     statusSecurity: "Validating security & compliance...",
-    statusGreen: "Measuring environmental sustainability..."
+    statusGreen: "Measuring environmental sustainability...",
+    uploadDiagram: "Upload Diagram",
+    processingImage: "Analyzing visual diagram...",
+    imageError: "Error processing image."
   }
 };
