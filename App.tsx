@@ -15,6 +15,8 @@ const App: React.FC = () => {
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const objectives = useMemo(() => getSovereigntyObjectives(lang), [lang]);
@@ -92,7 +94,6 @@ const App: React.FC = () => {
         result.assessments.forEach((item: any) => {
           const id = item.id as SOV_ID;
           if (newScores.hasOwnProperty(id)) {
-            // Safety check: Ensure score is integer 0-4
             const validScore = Math.max(0, Math.min(4, Math.round(item.score || 0)));
             newScores[id] = validScore;
             newNotes[id] = item.justification || "";
@@ -115,7 +116,9 @@ const App: React.FC = () => {
     setIsImageLoading(true);
     const reader = new FileReader();
     reader.onload = async () => {
-      const base64 = (reader.result as string).split(',')[1];
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1];
+      setUploadedImageUrl(dataUrl);
       const description = await describeArchitectureDiagram(base64, file.type, lang);
       if (description) {
         setGlobalSolution(prev => (prev ? prev + "\n\n" + description : description));
@@ -212,10 +215,20 @@ const App: React.FC = () => {
                 {isImageLoading ? (
                   <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z"/></svg>
                 )}
                 {t.uploadDiagram}
               </button>
+
+              {uploadedImageUrl && (
+                <button 
+                  onClick={() => setIsViewModalOpen(true)}
+                  className="bg-blue-50 border-2 border-blue-200 text-blue-700 px-6 py-3.5 rounded-2xl font-black text-sm tracking-wide transition-all hover:bg-blue-100 flex items-center gap-3 active:scale-95"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                  {t.viewDiagram}
+                </button>
+              )}
 
               <button 
                 onClick={handleGlobalAutoAssess}
@@ -245,6 +258,33 @@ const App: React.FC = () => {
             />
           </div>
         </section>
+
+        {isViewModalOpen && uploadedImageUrl && (
+          <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="relative bg-white rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h3 className="text-xl font-black text-slate-800">{t.viewDiagram}</h3>
+                <button 
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 p-2 rounded-xl transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto p-8 flex items-center justify-center bg-slate-100">
+                <img src={uploadedImageUrl} alt="Architecture Diagram" className="max-w-full h-auto rounded-xl shadow-lg border border-slate-200" />
+              </div>
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button 
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold text-sm hover:bg-slate-800 transition-all active:scale-95 shadow-lg"
+                >
+                  {t.closeDiagram}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-8">

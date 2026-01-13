@@ -40,6 +40,8 @@ export const translations = {
     statusSecurity: "Validando seguridad y cumplimiento...",
     statusGreen: "Midiendo sostenibilidad ambiental...",
     uploadDiagram: "Subir Diagrama",
+    viewDiagram: "Ver Diagrama",
+    closeDiagram: "Cerrar Vista",
     processingImage: "Analizando diagrama visual...",
     imageError: "Error al procesar la imagen."
   },
@@ -83,6 +85,8 @@ export const translations = {
     statusSecurity: "Validating security & compliance...",
     statusGreen: "Measuring environmental sustainability...",
     uploadDiagram: "Upload Diagram",
+    viewDiagram: "View Diagram",
+    closeDiagram: "Close View",
     processingImage: "Analyzing visual diagram...",
     imageError: "Error processing image."
   }
