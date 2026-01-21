@@ -8,8 +8,17 @@ import SovereigntyRadar from './components/SovereigntyRadar';
 import ChatWidget from './components/ChatWidget';
 import { getSovereigntyAdvice, autoAssessSolution, describeArchitectureDiagram } from './services/geminiService';
 
+/**
+ * Detects the browser's locale. 
+ * Returns 'es' if the language is Spanish, otherwise defaults to 'en'.
+ */
+const getInitialLanguage = (): Language => {
+  const browserLang = navigator.language.split('-')[0].toLowerCase();
+  return browserLang === 'es' ? 'es' : 'en';
+};
+
 const App: React.FC = () => {
-  const [lang, setLang] = useState<Language>('es');
+  const [lang, setLang] = useState<Language>(getInitialLanguage());
   const [globalSolution, setGlobalSolution] = useState("");
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
@@ -178,7 +187,7 @@ const App: React.FC = () => {
             </div>
             <button 
               onClick={handleCopyReport} 
-              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${copyFeedback ? 'bg-green-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'}`}
+              className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${copyFeedback ? 'bg-green-600 text-white shadow-lg' : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'}`}
             >
               {copyFeedback ? t.reportCopied : t.copyReport}
             </button>
