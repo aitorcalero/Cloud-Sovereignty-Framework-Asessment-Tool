@@ -28,13 +28,13 @@ const SovereigntyRadar = ({ scores, lang = 'es' as Language }: SovereigntyRadarP
   }));
 
   return (
-    <div className="w-full h-[300px] min-h-[300px] flex items-center justify-center overflow-hidden">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full h-full min-h-[300px] flex items-center justify-center">
+      <ResponsiveContainer width="100%" height={300}>
         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
-          <PolarGrid stroke="#e2e8f0" />
+          <PolarGrid stroke="#cbd5e1" />
           <PolarAngleAxis 
             dataKey="subject" 
-            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} 
+            tick={{ fill: '#64748b', fontSize: 10, fontWeight: 900 }} 
           />
           <PolarRadiusAxis 
             angle={30} 
@@ -48,10 +48,10 @@ const SovereigntyRadar = ({ scores, lang = 'es' as Language }: SovereigntyRadarP
             stroke="#2563eb"
             strokeWidth={3}
             fill="#3b82f6"
-            fillOpacity={0.5}
+            fillOpacity={0.4}
           />
           <Tooltip 
-            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
           />
         </RadarChart>
       </ResponsiveContainer>

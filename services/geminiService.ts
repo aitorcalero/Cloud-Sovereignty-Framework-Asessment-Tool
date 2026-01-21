@@ -29,8 +29,8 @@ export const describeArchitectureDiagram = async (
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = lang === 'en'
-    ? "Describe this architecture diagram in detail. Focus on components, cloud providers, locations, data flows, and security measures. Output ONLY plain text in English. NO MARKDOWN symbols."
-    : "Describe este diagrama de arquitectura en detalle. Céntrate en componentes, proveedores cloud, ubicaciones, flujos de datos y medidas de seguridad. Devuelve SOLO texto plano en español. SIN símbolos markdown.";
+    ? "Describe this architecture diagram in detail. Focus on components, cloud providers, locations, and security. Output ONLY plain text in English. NO MARKDOWN symbols."
+    : "Describe este diagrama de arquitectura en detalle. Céntrate en componentes, proveedores cloud, ubicaciones y seguridad. Devuelve SOLO texto plano en español. SIN símbolos markdown.";
 
   try {
     const response = await ai.models.generateContent({
@@ -56,18 +56,13 @@ export const autoAssessSolution = async (
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const systemInstruction = lang === 'en'
-    ? "You are an EU Cloud Sovereignty Auditor. Evaluate 8 SOV categories. CRITICAL RULE: SOV-8 (Environmental Sustainability) MUST focus ONLY on 'Green Cloud' aspects: PUE (Power Usage Effectiveness), carbon footprint, renewable energy, and electronic waste management. DO NOT talk about business sustainability or project duration. NO MARKDOWN. JSON ONLY. RESPOND IN ENGLISH."
-    : "Eres un Auditor de Soberanía Cloud de la UE. Evalúa 8 categorías SOV. REGLA CRÍTICA: SOV-8 (Sostenibilidad Ambiental) DEBE centrarse EXCLUSIVAMENTE en aspectos de 'Green Cloud': PUE (eficiencia energética), huella de carbono, uso de energías renovables y gestión de residuos electrónicos. NO hables de sostenibilidad del negocio o duración del proyecto. SIN MARKDOWN. SOLO JSON. RESPONDE EN ESPAÑOL.";
+    ? "You are an EU Cloud Sovereignty Auditor. Evaluate 8 SOV categories. CRITICAL: SOV-8 (Environmental Sustainability) MUST focus strictly on energy efficiency, green energy usage, and hardware lifecycle. IGNORE business sustainability. JSON ONLY. RESPOND IN ENGLISH."
+    : "Eres un Auditor de Soberanía Cloud de la UE. Evalúa 8 categorías SOV. CRÍTICO: SOV-8 (Sostenibilidad Ambiental) DEBE centrarse estrictamente en eficiencia energética, uso de energía verde y ciclo de vida del hardware. IGNORA la sostenibilidad del negocio. SOLO JSON. RESPONDE EN ESPAÑOL.";
 
-  const prompt = `Evaluate the following architecture description against the 8 Sovereignty Objectives:
-Description: "${description}"
-
-Categories to evaluate:
-SOV-1: Strategic, SOV-2: Legal, SOV-3: Data/AI, SOV-4: Operational, SOV-5: Supply Chain, SOV-6: Technical, SOV-7: Security, SOV-8: Environmental Sustainability (Green Computing).
-
-Output format is strictly JSON:
+  const prompt = `Evaluate: "${description}"
+Return JSON with the following structure:
 { "assessments": [{ "id": "SOV-1", "score": number, "justification": "string" }] }
-The score MUST be an integer between 0 and 4.`;
+The score MUST be an integer between 0 and 4. Include all IDs from SOV-1 to SOV-8.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -98,17 +93,12 @@ export const getSovereigntyAdvice = async (
   const isEnvironmental = objectiveName.toLowerCase().includes('sostenibilidad') || objectiveName.toLowerCase().includes('environmental');
   
   const systemInstruction = lang === 'en' 
-    ? `Expert EU Cloud Auditor. Respond in ENGLISH. NO markdown symbols. ${isEnvironmental ? 'Focus ONLY on green energy, carbon footprint and hardware efficiency. Ignore business or financial sustainability.' : ''}`
-    : `Experto Auditor Cloud UE. Responde en ESPAÑOL. SIN símbolos markdown. ${isEnvironmental ? 'Céntrate EXCLUSIVAMENTE en energía verde, huella de carbono y eficiencia del hardware. Ignora la sostenibilidad del negocio o financiera.' : ''}`;
+    ? `Expert EU Cloud Auditor. Respond in ENGLISH. NO markdown symbols. ${isEnvironmental ? 'Focus ONLY on green energy, carbon footprint and hardware efficiency.' : ''}`
+    : `Experto Auditor Cloud UE. Responde en ESPAÑOL. SIN símbolos markdown. ${isEnvironmental ? 'Céntrate EXCLUSIVAMENTE en energía verde, huella de carbono y eficiencia del hardware.' : ''}`;
 
   const prompt = `Objective: ${objectiveName}.
-Context of the Solution: "${userContext}".
-Factors to consider: ${factors.join(', ')}.
-
-Analyze the context and:
-1. Recommend a SEAL level (0-4).
-2. Justify why according to EU standards.
-3. List 3 concrete technical/legal improvements.`;
+Evidence: "${userContext}".
+Recommend a SEAL level (0-4), justify why, and provide 3 improvement steps.`;
 
   try {
     const response = await ai.models.generateContent({
@@ -133,12 +123,10 @@ export const getSealGuidance = async (
 ) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const systemInstruction = lang === 'en'
-    ? "EU Compliance Architect. Output PLAIN TEXT ONLY. NO MARKDOWN symbols. Respond in ENGLISH."
-    : "Arquitecto de Cumplimiento UE. Devuelve SOLO TEXTO PLANO. SIN símbolos markdown. Responde en ESPAÑOL.";
+    ? "EU Compliance Architect. NO MARKDOWN symbols. Respond in ENGLISH."
+    : "Arquitecto de Cumplimiento UE. SIN símbolos markdown. Responde en ESPAÑOL.";
 
-  const prompt = `Generate a custom L0 to L4 compliance guide for "${solutionDescription}" regarding ${objectiveName}.
-Factors: ${factors.join(', ')}.
-Specify technical steps to reach each level.`;
+  const prompt = `Create a custom L0 to L4 guide for "${solutionDescription}" for objective ${objectiveName}.`;
 
   try {
     const response = await ai.models.generateContent({
